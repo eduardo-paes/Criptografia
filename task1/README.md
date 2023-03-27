@@ -6,7 +6,7 @@
 gcc task1.c aes.c
 ```
 
-## Running
+## Run
 
 ```terminal
 ./a.out enc task1.c -o task1.c.aes
