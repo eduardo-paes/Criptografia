@@ -1,8 +1,10 @@
 /*
-Input: operation file_input -o file_output
-Encryptation: AES-256
-Padding: ANSI.X9.23
-Encrypt Mode: PCBC
+    CEFET-UnED Petrópolis
+    Criptografia - 2023.1
+    Autores: Thiago Paes e Eduardo Paes
+    Método de Encriptação: AES-256
+    Padding: ANSI.X9.23
+    Modo de Encriptação: PCBC
 */ 
 
 #include <stdio.h>
@@ -22,15 +24,12 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    // Pega chave de encriptação (16 bytes)
-    uint8_t key[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, }; // 16 bytes = 128 bits
+    // Pega chave de encriptação (16 bytes = 128 bits)
+    uint8_t key[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     char *pass = getpass("Enter passphrase for key: ");
     for (int i = 0; i < 16; i++) {
         key[i] = pass[i];
     }
-
-    // Pega o comando do usuário
-    char* op = argv[1];
 
     // Define variáveis auxiliares
     uint8_t iv[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -42,7 +41,8 @@ int main(int argc, char *argv[]) {
     // Informa criptografia
     printf("Starting encryption:\n  - Encryptation: AES-128\n  - Padding: ANSI.X9.23\n  - Encrypt Mode: PCBC\n\n");
 
-    if (strcmp(op, "enc") == 0) 
+    // Encriptação
+    if (strcmp(argv[1], "enc") == 0) 
     {
         // Abre o arquivo informado
         file_in = fopen(argv[2], "rb");
@@ -83,7 +83,9 @@ int main(int argc, char *argv[]) {
         // Informa o resultado
         printf("Encryption concluded.\n");
     }
-    else if (strcmp(op, "dec") == 0) 
+
+    // Decriptação
+    else if (strcmp(argv[1], "dec") == 0) 
     {
         // Abre o arquivo informado
         file_in = fopen(argv[2], "rb");
@@ -113,15 +115,8 @@ int main(int argc, char *argv[]) {
             // Remove o padding
             if (loop_num == loop_limit - 1) {
                 int k = 16 - output[15];
-                uint8_t tmp[16];
-                for (int i = 0; i <= k; i++) {
-                    tmp[i] = output[i];
-                }
-                printf("%s\n", output);
-                printf("%s\n", tmp);
-
-                fwrite(tmp, 1, k, file_out);
-                printf("Padding removed.\n");
+                fwrite(output, 1, 16-k, file_out);
+                printf("Padding removed (%d).\n", 16-k);
                 continue;
             }
 
@@ -137,6 +132,8 @@ int main(int argc, char *argv[]) {
         // Informa o resultado
         printf("Decryption concluded.\n");
     }
+
+    // Operação inválida
     else 
     {
         printf("Error: Invalid operation, use [enc|dec].\n");
