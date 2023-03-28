@@ -15,6 +15,20 @@
 
 #include "aes.h"
 
+const int NUM_BITS = 16;
+
+uint8_t* xor(uint8_t* x1, uint8_t* x2) {
+    static uint8_t xor_array[NUM_BITS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    for (int i = 0; i < NUM_BITS; i++) {
+        xor_array[i] = x1[i] ^ x2[i];
+    }
+    return xor_array;
+}
+
+uint8_t* pcbc(uint8_t* plain_text, uint8_t* input) {
+    return xor(plain_text, input);
+}
+
 int main(int argc, char *argv[]) {
 
     // Verifica se o número de argumentos é válido
@@ -25,16 +39,16 @@ int main(int argc, char *argv[]) {
     }
 
     // Pega chave de encriptação (16 bytes = 128 bits)
-    uint8_t key[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    uint8_t key[NUM_BITS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     char *pass = getpass("Enter passphrase for key: ");
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < NUM_BITS; i++) {
         key[i] = pass[i];
     }
 
     // Define variáveis auxiliares
-    uint8_t iv[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    uint8_t input[16];
-    uint8_t output[16];
+    uint8_t iv[NUM_BITS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    uint8_t input[NUM_BITS];
+    uint8_t output[NUM_BITS];
     FILE * file_in;
     FILE * file_out;
 
@@ -57,15 +71,17 @@ int main(int argc, char *argv[]) {
 
         // Inicia leitura do arquivo
         int size_readed = 0;
-        while((size_readed = fread(input, 1, 16, file_in)) != 0) {
+        int padding_added = 0;
+        while((size_readed = fread(input, 1, NUM_BITS, file_in)) != 0) {
             // Aplica o padding
-            if (size_readed != 16) {
-                for (int i = size_readed; i < 16; i++) {
+            if (size_readed != NUM_BITS) {
+                for (int i = size_readed; i < NUM_BITS; i++) {
                     if (i == 15)
                         input[i] = size_readed;
                     else 
                         input[i] = 0;
                 }
+                padding_added = 1;
                 printf("Padding added (%d).\n", size_readed);
             }
 
@@ -73,7 +89,22 @@ int main(int argc, char *argv[]) {
             AES128_Encrypt(input, key, output);
 
             // Salva no arquivo
-            fwrite(output, 1, 16, file_out);
+            fwrite(output, 1, NUM_BITS, file_out);
+        }
+
+        // Caso o padding não tenha sido adicionado
+        if (!padding_added) {
+            // Adiciona o padding manualmente
+            memset(input, 0, NUM_BITS);
+            input[15] = NUM_BITS;
+
+            // Encriptação
+            AES128_Encrypt(input, key, output);
+
+            // Salva no arquivo
+            fwrite(output, 1, NUM_BITS, file_out);
+
+            printf("Padding added (%d).\n", NUM_BITS);
         }
 
         // Fecha o arquivo
@@ -104,24 +135,27 @@ int main(int argc, char *argv[]) {
         // Pega o número de loops necessários
         fseek(file_in, 0L, SEEK_END);
         int file_size = ftell(file_in);
-        loop_limit = file_size / 16;
+        loop_limit = file_size / NUM_BITS;
         rewind(file_in);
 
         // Realiza a decriptação
-        while((size_read = fread(input, 1, 16, file_in)) != 0) {
+        while((size_read = fread(input, 1, NUM_BITS, file_in)) != 0) {
             // Decriptação
             AES128_Decrypt(input, key, output);
 
             // Remove o padding
             if (loop_num == loop_limit - 1) {
-                int k = 16 - output[15];
-                fwrite(output, 1, 16-k, file_out);
-                printf("Padding removed (%d).\n", 16-k);
+                int k = NUM_BITS - output[15];
+
+                if (k > 0) {
+                    fwrite(output, 1, NUM_BITS-k, file_out);
+                    printf("Padding removed (%d).\n", NUM_BITS-k);
+                }
                 continue;
             }
 
             // Salva no arquivo
-            fwrite(output, 1, 16, file_out);
+            fwrite(output, 1, NUM_BITS, file_out);
             loop_num++;
         }
 
