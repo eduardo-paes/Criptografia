@@ -25,8 +25,36 @@ uint8_t* xor(uint8_t* x1, uint8_t* x2) {
     return xor_array;
 }
 
-uint8_t* pcbc(uint8_t* plain_text, uint8_t* input) {
-    return xor(plain_text, input);
+void pcbc_enc(uint8_t* plain_text, uint8_t* input, uint8_t* key, uint8_t* output) {
+    // Realiza o XOR inicial
+    uint8_t* xor_plain_text = xor(plain_text, input);
+
+    // Encripta
+    AES128_Encrypt(xor_plain_text, key, output);
+
+    // Gera novo input/IV
+    input = xor(plain_text, xor_plain_text);
+}
+
+void pcbc_dec(uint8_t* cipher_text, uint8_t* input, uint8_t* key, uint8_t* output) {
+    // Decripta
+    AES128_Decrypt(cipher_text, key, output);
+
+    // Realiza o XOR final
+    uint8_t* pain_text = xor(output, input);
+
+    // Gera novo input/IV
+    input = xor(cipher_text, pain_text);
+}
+
+uint8_t* add_padding(int size_readed, uint8_t* input) {
+    for (int i = size_readed; i < NUM_BITS; i++) {
+        if (i == 15)
+            input[i] = size_readed;
+        else 
+            input[i] = 0;
+    }
+    return input;
 }
 
 int main(int argc, char *argv[]) {
@@ -71,35 +99,32 @@ int main(int argc, char *argv[]) {
 
         // Inicia leitura do arquivo
         int size_readed = 0;
-        int padding_added = 0;
+        int is_padding_added = 0;
         while((size_readed = fread(input, 1, NUM_BITS, file_in)) != 0) {
             // Aplica o padding
             if (size_readed != NUM_BITS) {
-                for (int i = size_readed; i < NUM_BITS; i++) {
-                    if (i == 15)
-                        input[i] = size_readed;
-                    else 
-                        input[i] = 0;
-                }
-                padding_added = 1;
+                add_padding(size_readed, input);
+                is_padding_added = 1;
                 printf("Padding added (%d).\n", size_readed);
             }
 
             // Encriptação
-            AES128_Encrypt(input, key, output);
+            //AES128_Encrypt(input, key, output);
+            pcbc_enc(input, iv, key, output);
 
             // Salva no arquivo
             fwrite(output, 1, NUM_BITS, file_out);
         }
 
         // Caso o padding não tenha sido adicionado
-        if (!padding_added) {
+        if (!is_padding_added) {
             // Adiciona o padding manualmente
             memset(input, 0, NUM_BITS);
             input[15] = NUM_BITS;
 
             // Encriptação
-            AES128_Encrypt(input, key, output);
+            //AES128_Encrypt(input, key, output);
+            pcbc_enc(input, iv, key, output);
 
             // Salva no arquivo
             fwrite(output, 1, NUM_BITS, file_out);
@@ -130,7 +155,7 @@ int main(int argc, char *argv[]) {
         }
 
         // Inicia leitura do arquivo
-        int size_read = 0, loop_num = 0, loop_limit;
+        int size_read = 0, loop_num = 1, loop_limit;
 
         // Pega o número de loops necessários
         fseek(file_in, 0L, SEEK_END);
@@ -141,15 +166,14 @@ int main(int argc, char *argv[]) {
         // Realiza a decriptação
         while((size_read = fread(input, 1, NUM_BITS, file_in)) != 0) {
             // Decriptação
-            AES128_Decrypt(input, key, output);
+            // AES128_Decrypt(input, key, output);
+            pcbc_dec(input, iv, key, output);
 
             // Remove o padding
-            if (loop_num == loop_limit - 1) {
-                int k = NUM_BITS - output[15];
-
-                if (k > 0) {
-                    fwrite(output, 1, NUM_BITS-k, file_out);
-                    printf("Padding removed (%d).\n", NUM_BITS-k);
+            if (loop_num == loop_limit) {
+                if (NUM_BITS - output[15] > 0) {
+                    fwrite(output, 1, output[15], file_out);
+                    printf("Padding removed (%d).\n", output[15]);
                 }
                 continue;
             }
