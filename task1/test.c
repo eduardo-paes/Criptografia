@@ -15,11 +15,11 @@
 
 #include "aes.h"
 
-const int NUM_BITS = 16;
+const int NUM_BYTES = 16;
 
 uint8_t* xor(uint8_t* x1, uint8_t* x2) {
-    static uint8_t xor_array[NUM_BITS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    for (int i = 0; i < NUM_BITS; i++) {
+    static uint8_t xor_array[NUM_BYTES] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    for (int i = 0; i < NUM_BYTES; i++) {
         xor_array[i] = x1[i] ^ x2[i];
     }
     return xor_array;
@@ -48,7 +48,7 @@ void pcbc_dec(uint8_t* cipher_text, uint8_t* input, uint8_t* key, uint8_t* outpu
 }
 
 uint8_t* add_padding(int size_readed, uint8_t* input) {
-    for (int i = size_readed; i < NUM_BITS; i++) {
+    for (int i = size_readed; i < NUM_BYTES; i++) {
         if (i == 15)
             input[i] = size_readed;
         else 
@@ -67,16 +67,16 @@ int main(int argc, char *argv[]) {
     }
 
     // Pega chave de encriptação (16 bytes = 128 bits)
-    uint8_t key[NUM_BITS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    uint8_t key[NUM_BYTES] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     char *pass = getpass("Enter passphrase for key: ");
-    for (int i = 0; i < NUM_BITS; i++) {
+    for (int i = 0; i < NUM_BYTES; i++) {
         key[i] = pass[i];
     }
 
     // Define variáveis auxiliares
-    uint8_t iv[NUM_BITS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    uint8_t input[NUM_BITS];
-    uint8_t output[NUM_BITS];
+    uint8_t iv[NUM_BYTES] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    uint8_t input[NUM_BYTES];
+    uint8_t output[NUM_BYTES];
     FILE * file_in;
     FILE * file_out;
 
@@ -100,9 +100,9 @@ int main(int argc, char *argv[]) {
         // Inicia leitura do arquivo
         int size_readed = 0;
         int is_padding_added = 0;
-        while((size_readed = fread(input, 1, NUM_BITS, file_in)) != 0) {
+        while((size_readed = fread(input, 1, NUM_BYTES, file_in)) != 0) {
             // Aplica o padding
-            if (size_readed != NUM_BITS) {
+            if (size_readed != NUM_BYTES) {
                 add_padding(size_readed, input);
                 is_padding_added = 1;
                 printf("Padding added (%d).\n", size_readed);
@@ -113,23 +113,23 @@ int main(int argc, char *argv[]) {
             pcbc_enc(input, iv, key, output);
 
             // Salva no arquivo
-            fwrite(output, 1, NUM_BITS, file_out);
+            fwrite(output, 1, NUM_BYTES, file_out);
         }
 
         // Caso o padding não tenha sido adicionado
         if (!is_padding_added) {
             // Adiciona o padding manualmente
-            memset(input, 0, NUM_BITS);
-            input[15] = NUM_BITS;
+            memset(input, 0, NUM_BYTES);
+            input[15] = NUM_BYTES;
 
             // Encriptação
             //AES128_Encrypt(input, key, output);
             pcbc_enc(input, iv, key, output);
 
             // Salva no arquivo
-            fwrite(output, 1, NUM_BITS, file_out);
+            fwrite(output, 1, NUM_BYTES, file_out);
 
-            printf("Padding added (%d).\n", NUM_BITS);
+            printf("Padding added (%d).\n", NUM_BYTES);
         }
 
         // Fecha o arquivo
@@ -160,18 +160,18 @@ int main(int argc, char *argv[]) {
         // Pega o número de loops necessários
         fseek(file_in, 0L, SEEK_END);
         int file_size = ftell(file_in);
-        loop_limit = file_size / NUM_BITS;
+        loop_limit = file_size / NUM_BYTES;
         rewind(file_in);
 
         // Realiza a decriptação
-        while((size_read = fread(input, 1, NUM_BITS, file_in)) != 0) {
+        while((size_read = fread(input, 1, NUM_BYTES, file_in)) != 0) {
             // Decriptação
             // AES128_Decrypt(input, key, output);
             pcbc_dec(input, iv, key, output);
 
             // Remove o padding
             if (loop_num == loop_limit) {
-                if (NUM_BITS - output[15] > 0) {
+                if (NUM_BYTES - output[15] > 0) {
                     fwrite(output, 1, output[15], file_out);
                     printf("Padding removed (%d).\n", output[15]);
                 }
@@ -179,7 +179,7 @@ int main(int argc, char *argv[]) {
             }
 
             // Salva no arquivo
-            fwrite(output, 1, NUM_BITS, file_out);
+            fwrite(output, 1, NUM_BYTES, file_out);
             loop_num++;
         }
 
