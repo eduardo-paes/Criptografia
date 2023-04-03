@@ -214,9 +214,10 @@ int main(int argc, char *argv[])
             // Remove o padding
             if (loop_num == loop_limit)
             {
-                if (NUM_BYTES - output[15] > 0)
+                int padding = NUM_BYTES - output[15];
+                if (padding > 0)
                 {
-                    fwrite(output, 1, output[15], file_out);
+                    fwrite(output, 1, padding, file_out);
                     printf("Padding removed (%d).\n", output[15]);
                 }
                 continue;
