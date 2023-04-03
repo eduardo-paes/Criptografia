@@ -9,9 +9,9 @@ gcc task1.c aes.c
 ## Run
 
 ```terminal
-./a.out enc task1.c -o task1.c.aes
+./a.out enc ./tests/image.jpg -o ./tests/image.jpg.aes
 ```
 
 ```terminal
-./a.out dec task1.c.aes -o test.c
+./a.out dec ./tests/image.jpg.aes -o ./tests/image2.jpg
 ```
