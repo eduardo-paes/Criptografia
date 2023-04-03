@@ -53,13 +53,11 @@ void pcbc_dec(uint8_t *cipher_text, uint8_t *input, uint8_t *key, uint8_t *outpu
 
 uint8_t *add_padding(int size_readed, uint8_t *input)
 {
-    for (int i = size_readed; i < NUM_BYTES; i++)
+    for (int i = size_readed; i < NUM_BYTES - 1; i++)
     {
-        if (i == 15)
-            input[i] = size_readed;
-        else
-            input[i] = 0;
+        input[i] = 0;
     }
+    input[NUM_BYTES - 1] = NUM_BYTES - size_readed;
     return input;
 }
 
@@ -107,6 +105,7 @@ int main(int argc, char *argv[])
     // Pega chave de encriptação (16 bytes = 128 bits)
     uint8_t *key = calloc(NUM_BYTES, sizeof(uint8_t));
     char *pass = getpass("Enter passphrase for key: ");
+
     for (int i = 0; i < max(strlen(pass), NUM_BYTES); i++)
     {
         key[i] = pass[i];
@@ -146,7 +145,7 @@ int main(int argc, char *argv[])
             {
                 add_padding(size_readed, input);
                 is_padding_added = 1;
-                printf("Padding added (%d).\n", size_readed);
+                printf("Padding added (%d).\n", NUM_BYTES - size_readed);
             }
 
             // Encriptação
