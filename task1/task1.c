@@ -81,7 +81,7 @@ int main(int argc, char *argv[]) {
     FILE * file_out;
 
     // Informa criptografia
-    printf("Starting encryption:\n  - Encryptation: AES-128\n  - Padding: ANSI.X9.23\n  - Encrypt Mode: PCBC\n\n");
+    printf("Starting process:\n  - Encryptation: AES-128\n  - Padding: ANSI.X9.23\n  - Encrypt Mode: PCBC\n\n");
 
     // Encriptação
     if (strcmp(argv[1], "enc") == 0) 
