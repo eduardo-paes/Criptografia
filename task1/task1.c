@@ -21,9 +21,7 @@ uint8_t * xor (uint8_t * x1, uint8_t *x2) {
     uint8_t *xor_array = calloc(NUM_BYTES, sizeof(uint8_t));
 
     for (int i = 0; i < NUM_BYTES; i++)
-    {
         xor_array[i] = x1[i] ^ x2[i];
-    }
     return xor_array;
 }
 
@@ -54,9 +52,7 @@ void pcbc_dec(uint8_t *cipher_text, uint8_t *input, uint8_t *key, uint8_t *outpu
 uint8_t *add_padding(int size_readed, uint8_t *input)
 {
     for (int i = size_readed; i < NUM_BYTES - 1; i++)
-    {
         input[i] = 0;
-    }
     input[NUM_BYTES - 1] = NUM_BYTES - size_readed;
     return input;
 }
@@ -149,7 +145,6 @@ int main(int argc, char *argv[])
             }
 
             // Encriptação
-            // AES128_Encrypt(input, key, output);
             pcbc_enc(input, iv, key, output);
 
             // Salva no arquivo
@@ -164,7 +159,6 @@ int main(int argc, char *argv[])
             input[15] = NUM_BYTES;
 
             // Encriptação
-            // AES128_Encrypt(input, key, output);
             pcbc_enc(input, iv, key, output);
 
             // Salva no arquivo
@@ -208,7 +202,6 @@ int main(int argc, char *argv[])
         while ((size_read = fread(input, 1, NUM_BYTES, file_in)) != 0)
         {
             // Decriptação
-            // AES128_Decrypt(input, key, output);
             pcbc_dec(input, iv, key, output);
 
             // Remove o padding
