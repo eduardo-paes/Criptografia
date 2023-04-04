@@ -36,7 +36,7 @@ uint8_t * xor (uint8_t * x1, uint8_t *x2) {
     AES128_Encrypt(xor_plain_text, key, output);
 
     // Gera novo input/IV
-    input = xor(plain_text, xor_plain_text);
+    input = xor(plain_text, output);
 }
 
 void pcbc_dec(uint8_t *cipher_text, uint8_t *input, uint8_t *key, uint8_t *output)
@@ -45,10 +45,10 @@ void pcbc_dec(uint8_t *cipher_text, uint8_t *input, uint8_t *key, uint8_t *outpu
     AES128_Decrypt(cipher_text, key, output);
 
     // Realiza o XOR final
-    uint8_t *pain_text = xor(output, input);
+    uint8_t *plain_text = xor(output, input);
 
     // Gera novo input/IV
-    input = xor(cipher_text, pain_text);
+    input = xor(cipher_text, plain_text);
 }
 
 uint8_t *add_padding(int size_readed, uint8_t *input)
