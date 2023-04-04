@@ -25,7 +25,7 @@ uint8_t * xor (uint8_t * x1, uint8_t *x2) {
     return xor_array;
 }
 
-    void pcbc_enc(uint8_t *plain_text, uint8_t *input, uint8_t *key, uint8_t *output)
+    uint8_t *pcbc_enc(uint8_t *plain_text, uint8_t *input, uint8_t *key, uint8_t *output)
 {
     // Realiza o XOR inicial
     uint8_t *xor_plain_text = xor(plain_text, input);
@@ -34,19 +34,19 @@ uint8_t * xor (uint8_t * x1, uint8_t *x2) {
     AES128_Encrypt(xor_plain_text, key, output);
 
     // Gera novo input/IV
-    input = xor(plain_text, output);
+    memcpy(input, xor(plain_text, output), NUM_BYTES);
 }
 
-void pcbc_dec(uint8_t *cipher_text, uint8_t *input, uint8_t *key, uint8_t *output)
+void *pcbc_dec(uint8_t *cipher_text, uint8_t *input, uint8_t *key, uint8_t *output)
 {
     // Decripta
     AES128_Decrypt(cipher_text, key, output);
 
     // Realiza o XOR final
-    uint8_t *plain_text = xor(output, input);
+    memcpy(output, xor(output, input), NUM_BYTES);
 
     // Gera novo input/IV
-    input = xor(cipher_text, plain_text);
+    memcpy(input, xor(output, cipher_text), NUM_BYTES);
 }
 
 uint8_t *add_padding(int size_readed, uint8_t *input)
@@ -57,7 +57,7 @@ uint8_t *add_padding(int size_readed, uint8_t *input)
     return input;
 }
 
-int max(int a, int b)
+int min(int a, int b)
 {
     if (a < b)
         return a;
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
     uint8_t *key = calloc(NUM_BYTES, sizeof(uint8_t));
     char *pass = getpass("Enter passphrase for key: ");
 
-    for (int i = 0; i < max(strlen(pass), NUM_BYTES); i++)
+    for (int i = 0; i < min(strlen(pass), NUM_BYTES); i++)
     {
         key[i] = pass[i];
     }
@@ -190,11 +190,12 @@ int main(int argc, char *argv[])
         }
 
         // Inicia leitura do arquivo
-        int size_read = 0, loop_num = 1, loop_limit;
+        int size_read = 0, loop_num = 1;
+        long loop_limit;
 
         // Pega o número de loops necessários
         fseek(file_in, 0L, SEEK_END);
-        int file_size = ftell(file_in);
+        long file_size = ftell(file_in);
         loop_limit = file_size / NUM_BYTES;
         rewind(file_in);
 
