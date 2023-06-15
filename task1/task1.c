@@ -25,7 +25,7 @@ uint8_t * xor (uint8_t * x1, uint8_t *x2) {
     return xor_array;
 }
 
-    uint8_t *pcbc_enc(uint8_t *plain_text, uint8_t *input, uint8_t *key, uint8_t *output)
+uint8_t *pcbc_enc(uint8_t *plain_text, uint8_t *input, uint8_t *key, uint8_t *output)
 {
     // Realiza o XOR inicial
     uint8_t *xor_plain_text = xor(plain_text, input);
@@ -57,7 +57,7 @@ uint8_t *add_padding(int size_readed, uint8_t *input)
     return input;
 }
 
-int min(int a, int b)
+int minValue(int a, int b)
 {
     if (a < b)
         return a;
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
     uint8_t *key = calloc(NUM_BYTES, sizeof(uint8_t));
     char *pass = getpass("Enter passphrase for key: ");
 
-    for (int i = 0; i < min(strlen(pass), NUM_BYTES); i++)
+    for (int i = 0; i < minValue(strlen(pass), NUM_BYTES); i++)
     {
         key[i] = pass[i];
     }
