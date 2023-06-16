@@ -52,7 +52,39 @@ char* concatArguments(int argc, char* args[]) {
     return result;
 }
 
+// Conta o número de bits setados em um número
+uint8_t countSetBits(uint8_t n) {
+	uint8_t count = 0;
+	while (n) {
+		count += n & 1;
+		n >>= 1;
+	}
+	return count;
+}
+
+// Gera a tabela de bias
+void generateBiasTable() {
+    printf("Bias Table for SBOX (8 x 8)\n");
+    uint8_t diffX, diffY, diff;
+    
+    // Calcula a diferença entre x e y antes e depois da aplicação da SBOX
+    for (int x = 0; x < 8; x++)
+    {
+        for (int y = 0; y < 8; y++)
+        {
+            diffX = x ^ y;
+            diffY = SBOX[x] ^ SBOX[y];
+            diff = diffX ^ diffY;
+            printf("%d\t", countSetBits(diff));
+        }
+        printf("\n");
+    }
+}
+
 int main (int argc, char* argv[]) {
+
+    // Gera a tabela de bias
+    generateBiasTable();
 
     // Verifica se o número de argumentos é válido
     if (argc < 2)
@@ -71,7 +103,7 @@ int main (int argc, char* argv[]) {
     uint8_t* c = getEncryptedValue(argv[1], key);
 
     // Imprime a mensagem encriptada
-    printf("Encrypted message: %s\n", c);
+    printf("Encrypted message: %s\n", c);    
 
     return 0;
 }
