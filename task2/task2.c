@@ -81,7 +81,7 @@ void printBiasTable(float **biasTable) {
         for (int j = 0; j < SBOX_SIZE; j++) {
             fprintf(fileOut, "|%4.0f\t", biasTable[i][j]);
         }
-        fputs("|\n", fileOut);
+        fprintf(fileOut, "|\n");
     }
     fclose(fileOut);
 }
@@ -141,9 +141,9 @@ void printLinearExpressions(uint8_t* key, int bias) {
 
     fprintf(fileOut, "Melhor chave encontrada (bias = %d):\n", bias);
     fprintf(fileOut, "====================================\n\n");
-    fputs(fileOut, "Key = { ");
-    for (uint8_t i = 0; i < 0xFF; i++) fprintf(fileOut, "%02X\t", i, key[i]);
-    fputs(fileOut, " }\n\n");
+    fprintf(fileOut, "Key = { ");
+    for (uint8_t i = 0; i < 0xFF; i++) fprintf(fileOut, "%02X\t", key[i]);
+    fprintf(fileOut, " }\n\n");
 
     fprintf(fileOut, "Melhores Expressões Lineares para a Chave:\n");
     fprintf(fileOut, "==========================================\n\n");
