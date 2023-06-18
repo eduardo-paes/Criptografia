@@ -141,24 +141,14 @@ void printLinearExpressions(uint8_t* key) {
     fprintf(fileOut, "Melhores Expressões Lineares para a Chave:\n");
     fprintf(fileOut, "==========================================\n\n");
 
-    for (uchar i = 1; i <= 8; i++) {
-        uchar sum = 0;
-
-        for (uchar j = 0; j < NUM_BYTES; j++) {
-            if (bit(key[j], i))
-                fprintf(fileOut, " + X%d", j + 1);
-            else
-                fprintf(fileOut, " - X%d", j + 1);
-
-            sum ^= bit(key[j], i);
+     for (int i = 0; i < NUM_BYTES; i++) {
+        for (uchar j = 0; j < 8; j++) {
+            if (key[i] & (1 << j)) {
+                fprintf(fileOut, "Chave[%d][%d] = 1\n", i, j + 1);
+            } else {
+                fprintf(fileOut, "Chave[%d][%d] = 0\n", i, j + 1);
+            }
         }
-
-        if (sum)
-            fprintf(fileOut, " + 1");
-        else
-            fprintf(fileOut, " - 1");
-
-        fputs(" = 0\n", fileOut);
     }
 
     fclose(fileOut);
