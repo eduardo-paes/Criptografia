@@ -135,13 +135,19 @@ int calculateBias(float **biasTable, uint8_t* key) {
     return bias;
 }
 
-void printLinearExpressions(uint8_t* key) {
+void printLinearExpressions(uint8_t* key, int bias) {
     FILE *fileOut;
     fileOut = fopen("linear_expressions.txt", "w");
+
+    fprintf(fileOut, "Melhor chave encontrada (bias = %d):\n", bias);
+    fprintf(fileOut, "====================================\n\n");
+    fputs(fileOut, "Key = { ");
+    for (uint8_t i = 0; i < 0xFF; i++) fprintf(fileOut, "%02X\t", i, key[i]);
+    fputs(fileOut, " }\n\n");
+
     fprintf(fileOut, "Melhores Expressões Lineares para a Chave:\n");
     fprintf(fileOut, "==========================================\n\n");
-
-     for (int i = 0; i < NUM_BYTES; i++) {
+    for (int i = 0; i < NUM_BYTES; i++) {
         for (uchar j = 0; j < 8; j++) {
             if (key[i] & (1 << j)) {
                 fprintf(fileOut, "Chave[%d][%d] = 1\n", i, j + 1);
@@ -162,12 +168,9 @@ int main (int argc, char* argv[]) {
     printBiasTable(biasTable);
 
     // Obtém melhores expressões lineares para a chave
-    int bias;
-    int bestBias = 0;
     uint8_t bestKey[NUM_BYTES];
-
+    int bias, bestBias = 0, count = 0;
     long total = pow(0xFF, NUM_BYTES);
-    int count = 0;
 
     // Testa todas as chaves possíveis
     for (uint8_t k1 = 0; k1 < 0xFF; k1++) {
@@ -194,13 +197,8 @@ int main (int argc, char* argv[]) {
         }
     }
 
-    printf("Melhor chave encontrada (bias = %d):\n", bestBias);
-    for (uint8_t i = 0; i < 0xFF; i++) {
-        printf("Key[%u] = %02X\n", i, bestKey[i]);
-    }
-
-    printf("\nExpressoes lineares correspondentes:\n");
-    printLinearExpressions(bestKey);
+    // Imprime a melhor chave encontrada
+    printLinearExpressions(bestKey, bestBias);
 
     // uint8_t k[NUM_BYTES] = { 0x01, 0x02, 0x03, 0x04 };
     // char* m = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
