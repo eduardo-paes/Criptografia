@@ -16,8 +16,6 @@ const uchar SBOX[SBOX_SIZE] = {41, 157, 143, 131, 222, 227, 111, 16, 81, 29, 204
 
 #pragma endregion
 
-#pragma region Bias Table
-
 // Retorna o iésimo bit de x
 uchar bit(uchar x, uchar i)
 {
@@ -76,7 +74,7 @@ void generateBiasTable(float **biasTable)
     // Salva no arquivo a tabela de bias
     FILE *fileOut;
     fileOut = fopen("bias_table.txt", "w");
-    fprintf(fileOut, "Tabela de Bias:\n");
+    fprintf(fileOut, "Bias Table:\n");
     fprintf(fileOut, "===============\n\n");
     for (int i = 0; i < SBOX_SIZE; i++)
     {
@@ -89,147 +87,135 @@ void generateBiasTable(float **biasTable)
     fclose(fileOut);
 }
 
-#pragma endregion
-
-#pragma region Get Best Linear Expressions
-
-int calculateBias(float **biasTable, uint8_t *key)
+// Encontra as melhores expressões lineares para a chave e realiza o ataque linear
+void linearAttack(float **biasTable, char *m, uint8_t *k)
 {
-    int idx, bias = 0;
-    for (uchar i = 1; i <= 8; i++)
+    // Encontra o maior bias e o número de ocorrências
+    int maxBias = 0;
+    int numMaxBias = 0;
+    for (int i = 0; i < SBOX_SIZE; i++)
     {
-        uchar sum = 0;
-        for (uchar j = 0; j < KEY_NUM_BYTES; j++)
-            sum ^= bit(key[j], i);
-        idx = sum * pow(2, 7 - i);
-        bias += biasTable[i - 1][idx];
-    }
-    return bias;
-}
-
-void getBestKey(float **biasTable, uint8_t *bestKey)
-{
-    // Obtém melhores expressões lineares para a chave
-    int bias, bestBias = 0, count = 0;
-    long total = pow(0xFF, KEY_NUM_BYTES);
-
-    // Testa todas as chaves possíveis
-    for (uint8_t k1 = 0; k1 < 0xFF; k1++)
-    {
-        for (uint8_t k2 = 0; k2 < 0xFF; k2++)
+        for (int j = 0; j < SBOX_SIZE; j++)
         {
-            for (uint8_t k3 = 0; k3 < 0xFF; k3++)
+            if (i == 0 && j == 0)
+                continue;
+
+            if (fabsf(biasTable[i][j]) > maxBias)
             {
-                for (uint8_t k4 = 0; k4 < 0xFF; k4++)
+                maxBias = fabsf(biasTable[i][j]);
+                numMaxBias = 1;
+            }
+            else if (fabsf(biasTable[i][j]) == maxBias)
+            {
+                numMaxBias++;
+            }
+        }
+    }
+
+    printf("Best Bias = abs(%d)\n", maxBias);
+    printf("Occurrence number = %d\n", numMaxBias);
+
+    // Encontra as posições (X,Y) do maior bias
+    int posMaxBias[numMaxBias][2];
+    int pos = 0;
+    for (int i = 0; i < SBOX_SIZE; i++)
+    {
+        for (int j = 0; j < SBOX_SIZE; j++)
+        {
+            if (fabsf(biasTable[i][j]) == maxBias)
+            {
+                posMaxBias[pos][0] = i;
+                posMaxBias[pos][1] = j;
+                pos++;
+            }
+        }
+    }
+
+    // Imprime a quantidade de ocorrências
+    int *posX = calloc(8, sizeof(int));
+    int *posY = calloc(8, sizeof(int));
+    int X, Y, y, c = 0, pr = 0;
+    uchar res, w, yi, r0, r1;
+    uint8_t ki = 0;
+    for (int i = 0; i < numMaxBias; i++)
+    {
+        X = posMaxBias[i][0];
+        Y = posMaxBias[i][1];
+        for (int j = 1; j <= 8; j++)
+        {
+            if (bit(X, j) == 1)
+                posX[j - 1] = 1;
+            if (bit(Y, j) == 1)
+                posY[j - 1] = 1;
+        }
+
+        y = 0;
+        for (int x = 0; x < SBOX_SIZE; x++)
+        {
+            /// Pegar os bits mais significativos de X e Y
+            /// Faz o xor entre eles e incrementa o contador
+            res = 0;
+            y = SBOX[x];
+            for (int j = 1; j <= 8; j++)
+            {
+                if (posX[j - 1])
+                    res ^= bit(x, j);
+                if (posY[j - 1])
+                    res ^= bit(y, j);
+            }
+            if (res)
+                c++;
+        }
+
+        // Calcula a probabilidade
+        for (uchar l = 0; l < strlen(m); l++)
+        {
+            r0 = 0;
+            r1 = 0;
+            w = m[l];
+            ki = k[l % KEY_NUM_BYTES];
+            yi = SBOX[w ^ ki];
+
+            for (int j = 1; j <= 8; j++)
+            {
+                if (posX[j - 1])
                 {
-                    // Cria a chave
-                    uint8_t k[KEY_NUM_BYTES] = {k1, k2, k3, k4};
-
-                    // Calcula o bias da chave
-                    bias = calculateBias(biasTable, k);
-
-                    // Guarda a chave com melhor bias
-                    if (bias > bestBias)
-                    {
-                        bestBias = bias;
-                        memcpy(bestKey, k, KEY_NUM_BYTES);
-                    }
-                    count++;
-
-                    // Imprime o progesso da operação
-                    printf("Status: %d de %lu\r", count, total);
+                    r0 ^= bit(w, j);
+                    r1 ^= bit(ki, j);
                 }
+                if (posY[j - 1])
+                    r1 ^= bit(yi, j);
             }
+
+            // Calcula a probabilidade da chave
+            if (r0 == (r1 ^ 1))
+                pr++;
         }
-    }
 
-    // Salva no arquivo as melhores expressões lineares para a chave
-    FILE *fileOut;
-    fileOut = fopen("linear_expressions.txt", "w");
-    fprintf(fileOut, "Melhor chave encontrada (bias = %d):\n", bestBias);
-    fprintf(fileOut, "====================================\n\n");
-    fprintf(fileOut, "Key = { ");
-    for (uint8_t i = 0; i < 0xFF; i++)
-        fprintf(fileOut, "%02X\t", bestKey[i]);
-    fprintf(fileOut, " }\n\n");
-    fprintf(fileOut, "Melhores Expressões Lineares para a Chave:\n");
-    fprintf(fileOut, "==========================================\n\n");
-    for (int i = 0; i < KEY_NUM_BYTES; i++)
-    {
-        for (uchar j = 0; j < 8; j++)
-        {
-            if (bestKey[i] & (1 << j))
-            {
-                fprintf(fileOut, "Chave[%d][%d] = 1\n", i, j + 1);
-            }
-            else
-            {
-                fprintf(fileOut, "Chave[%d][%d] = 0\n", i, j + 1);
-            }
-        }
+        // Reseta array de posições de bit 1 de X e Y
+        posX = calloc(8, sizeof(int));
+        posY = calloc(8, sizeof(int));
+
+        // Imprime o resultado
+        printf("X = %d, Y = %d, c = %d, Pr. = %.3f\t| Pr. Linear Attack: %f\n", X, Y, c, c / (float)SBOX_SIZE, pr / (256.));
+        c = 0;
+        pr = 0;
     }
-    fclose(fileOut);
 }
-
-#pragma endregion
-
-#pragma region Linear Attack
-
-// Realiza a encryptacação da mensagem de acordo com a chave informada
-uint8_t *encryptMessage(char *m, uint8_t *k)
-{
-    uint8_t *w = calloc(strlen(m), sizeof(uint8_t));
-    uint8_t *c = calloc(strlen(m), sizeof(uint8_t));
-    for (int i = 0; i < strlen(m); i++)
-    {
-        w[i] = m[i] ^ k[i % KEY_NUM_BYTES];
-        c[i] = SBOX[w[i]];
-    }
-    free(w);
-    return c;
-}
-
-uint8_t getMostFrequentByte(uint8_t *c, int len)
-{
-    // int counter[BYTE_RANGE] = {0};
-    int *counter = (int *)calloc(BYTE_RANGE, sizeof(int));
-
-    for (int i = 0; i < len; i++)
-        counter[c[i]]++;
-
-    uint8_t mostFrequentByte = 0;
-    int maxCount = 0;
-    for (int i = 0; i < BYTE_RANGE; i++)
-    {
-        if (counter[i] > maxCount)
-        {
-            mostFrequentByte = i;
-            maxCount = counter[i];
-        }
-    }
-
-    free(counter);
-    return mostFrequentByte;
-}
-
-#pragma endregion
 
 int main(int argc, char *argv[])
 {
+    uint8_t k[KEY_NUM_BYTES] = {0xA5, 0x12, 0x3C, 0x6B};
+    char *m = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
+
     // Gera a tabela de bias
     float **biasTable = allocTable(SBOX_SIZE);
     generateBiasTable(biasTable);
 
     // Obtém melhores expressões lineares para a chave
-    uint8_t bestKey[KEY_NUM_BYTES];
-    getBestKey(biasTable, bestKey);
+    linearAttack(biasTable, m, k);
 
-    // uint8_t k[NUM_BYTES] = { 0x01, 0x02, 0x03, 0x04 };
-    // char* m = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
-    // uint8_t* c = encryptMessage(m, k);
-
+    // Desaloca a tabela de bias
     deallocTable(biasTable, SBOX_SIZE);
-    free(bestKey);
-
     return 0;
 }
