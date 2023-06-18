@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
+#define uchar unsigned char 
 #define SBOX_SIZE 256
 #define NUM_BYTES 4
 
@@ -18,7 +19,7 @@ int minValue(int a, int b)
 }
 
 // Retorna o iésimo bit de x
-unsigned char bit( unsigned char x, unsigned char i ) {
+unsigned char bit(unsigned char x, unsigned char i) {
     return (x >> (8 - i)) & 1;
 }
 
@@ -83,57 +84,67 @@ uint8_t countSetBits(uint8_t n) {
 // Gera a tabela de bias
 void generateBiasTable(float **biasTable) {
     uchar bitValues[SBOX_SIZE][8];
-    for (int i = 0; i < SBOX_SIZE; i++) {
-        for (int j = 0; j < 8; j++) {
+    for (int i = 0; i < SBOX_SIZE; i++)
+        for (int j = 0; j < 8; j++)
             bitValues[i][j] = bit(i, j + 1);
-        }
-    }
 
-    for (int x = 0; x < SBOX_SIZE; x++) {
-        for (int y = 0; y < SBOX_SIZE; y++) {
-            int matches = 0;
-            for (int X = 0; X < SBOX_SIZE; X++) {
-                int a = 0;
-                int b = 0;
-                for (int i = 0; i < 8; i++) {
-                    a ^= bitValues[X][i] & bitValues[x][i];
-                    b ^= bitValues[SBOX[X]][i] & bitValues[y][i];
+    int matches, a, b;
+    for (int i = 0; i < SBOX_SIZE; i++) {
+        for (int j = 0; j < SBOX_SIZE; j++) {
+            matches = 0;
+            for (int k = 0; k < SBOX_SIZE; k++) {
+                a = 0;
+                b = 0;
+                for (int l = 0; l < 8; l++) {
+                    a ^= bitValues[k][l] & bitValues[i][l];
+                    b ^= bitValues[SBOX[k]][l] & bitValues[j][l];
                 }
-                if (a == b) {
-                    matches++;
-                }
+                if (a == b) matches++;
             }
-            biasTable[x][y] = matches - SBOX_SIZE / 2;
+            biasTable[i][j] = matches - SBOX_SIZE / 2;
         }
     }
 }
 
+void printBiasTable(float **biasTable) {
+    FILE *file_out;
+    file_out = fopen("bias_table.txt", "w");
+    fprintf(file_out, "Tabela de Bias:\n");
+    fprintf(file_out, "===============\n\n");
+    for (int i = 0; i < SBOX_SIZE; i++) {
+        for (int j = 0; j < SBOX_SIZE; j++) {
+            fprintf(file_out, "|%4.0f\t", biasTable[i][j]);
+        }
+        fputs("|\n", file_out);
+    }
+    fclose(file_out);
+}
+
 int main (int argc, char* argv[]) {
 
-    // Verifica se o número de argumentos é válido
-    if (argc < 2)
-    {
-        printf("Message is required for encryptation.\n");
-        return 1;
-    }
-
     float ** biasTable = allocTable(SBOX_SIZE);
-    
     generateBiasTable(biasTable);
-
+    printBiasTable(biasTable);
     deallocTable(biasTable, SBOX_SIZE);
 
-    // Obtém a mensagem a ser encriptada
-    char* message = concatArguments(argc, argv);
+    // // Verifica se o número de argumentos é válido
+    // if (argc < 2)
+    // {
+    //     printf("Message is required for encryptation.\n");
+    //     return 1;
+    // }
 
-    // Pega chave de encriptação
-    uint8_t* key = getPasswordFromCLI();
+    // // Obtém a mensagem a ser encriptada
+    // char* message = concatArguments(argc, argv);
 
-    // Realiza a encryptação da mensagem
-    uint8_t* c = getEncryptedValue(argv[1], key);
+    // // Pega chave de encriptação
+    // uint8_t* key = getPasswordFromCLI();
 
-    // Imprime a mensagem encriptada
-    printf("Encrypted message: %s\n", c);    
+    // // Realiza a encryptação da mensagem
+    // uint8_t* c = getEncryptedValue(argv[1], key);
+
+    // // Imprime a mensagem encriptada
+    // printf("Encrypted message: %s\n", c);    
 
     return 0;
 }
