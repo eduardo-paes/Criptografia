@@ -197,7 +197,7 @@ void linearAttack(float **biasTable, char *m, uint8_t *k)
         posY = calloc(8, sizeof(int));
 
         // Imprime o resultado
-        printf("X = %d, Y = %d, c = %d, Pr. = %.3f\t| Pr. Linear Attack: %f\n", X, Y, c, c / (float)SBOX_SIZE, pr / (256.));
+        printf("X = %d, Y = %d, c = %d, Pr. = %.3f\t| Pr. AL: %f\n", X, Y, c, c / (float)SBOX_SIZE, pr / (256.));
         c = 0;
         pr = 0;
     }
